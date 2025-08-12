@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Admin Panel - Thirumala Art Creations</title>
+<style>
+  body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, #0b0c10, #1f2833);
+    color: #c5c6c7;
+    margin: 0;
+    padding: 20px;
+  }
+  h1 {
+    color: #66fcf1;
+    margin-bottom: 24px;
+  }
+  label {
+    display: block;
+    margin: 12px 0 6px;
+  }
+  input[type="text"], input[type="url"], input[type="file"] {
+    width: 100%;
+    padding: 8px;
+    border-radius: 6px;
+    border: none;
+    outline: none;
+    margin-bottom: 12px;
+    font-size: 14px;
+  }
+  button {
+    background: #45a29e;
+    border: none;
+    color: #0b0c10;
+    padding: 10px 18px;
+    margin-right: 8px;
+    border-radius: 6px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background 0.3s ease;
+  }
+  button:hover {
+    background: #66fcf1;
+    color: #0b0c10;
+  }
+  .section {
+    background: #1f2833;
+    padding: 20px;
+    border-radius: 12px;
+    margin-bottom: 30px;
+  }
+  .list-item {
+    background: #0b0c10;
+    margin: 8px 0;
+    padding: 10px;
+    border-radius: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .list-item img {
+    max-height: 50px;
+    border-radius: 6px;
+    flex-shrink: 0;
+    cursor: pointer;
+  }
+  .list-item span {
+    flex: 1 1 auto;
+    word-break: break-word;
+  }
+  .list-item button {
+    background: #c3073f;
+    color: #fff;
+    padding: 6px 12px;
+    font-size: 12px;
+    margin: 0;
+    flex-shrink: 0;
+  }
+  .list-item button:hover {
+    background: #ff4c67;
+  }
+</style>
+</head>
+<body>
+
+<h1>Admin Panel — Thirumala Art Creations</h1>
+
+<div class="section" id="slides-section">
+  <h2>Manage Slides</h2>
+  <label for="slide-file-input">Upload slide image file (max 1MB):</label>
+  <input type="file" id="slide-file-input" accept="image/*" />
+  <button id="add-slide-file-btn">Add Slide from File</button>
+  
+  <label for="slide-url-input">Or add slide image URL:</label>
+  <input type="url" id="slide-url-input" placeholder="https://example.com/image.jpg" />
+  <button id="add-slide-url-btn">Add Slide by URL</button>
+  
+  <h3>Existing Slides</h3>
+  <div id="slides-list"></div>
+</div>
+
+<div class="section" id="projects-section">
+  <h2>Manage YouTube Projects</h2>
+  <label for="project-url-input">Add YouTube URL or ID:</label>
+  <input type="text" id="project-url-input" placeholder="Paste YouTube link or ID" />
+  <button id="add-project-btn">Add Project</button>
+
+  <h3>Existing Projects</h3>
+  <div id="projects-list"></div>
+</div>
+
+<script>
+  const SLIDES_KEY = 'thirumala_slides';
+  const PROJECTS_KEY = 'thirumala_projects';
+
+  let slides = JSON.parse(localStorage.getItem(SLIDES_KEY)) || [];
+  let projects = JSON.parse(localStorage.getItem(PROJECTS_KEY)) || [];
+
+  // Slide elements
+  const slideFileInput = document.getElementById('slide-file-input');
+  const addSlideFileBtn = document.getElementById('add-slide-file-btn');
+  const slideUrlInput = document.getElementById('slide-url-input');
+  const addSlideUrlBtn = document.getElementById('add-slide-url-btn');
+  const slidesList = document.getElementById('slides-list');
+
+  // Project elements
+  const projectUrlInput = document.getElementById('project-url-input');
+  const addProjectBtn = document.getElementById('add-project-btn');
+  const projectsList = document.getElementById('projects-list');
+
+  function saveSlides() {
+    try {
+      localStorage.setItem(SLIDES_KEY, JSON.stringify(slides));
+      return true;
+    } catch (e) {
+      alert('Storage limit exceeded. Try removing some slides or use smaller images.');
+      return false;
+    }
+  }
+
+  function saveProjects() {
+    localStorage.setItem(PROJECTS_KEY, JSON.stringify(projects));
+  }
+
+  function renderSlides() {
+    slidesList.innerHTML = '';
+    if (slides.length === 0) {
+      slidesList.textContent = 'No slides added yet.';
+      return;
+    }
+    slides.forEach((slide, index) => {
+      const div = document.createElement('div');
+      div.className = 'list-item';
+
+      const img = document.createElement('img');
+      img.src = slide;
+      img.alt = `Slide ${index + 1}`;
+
+      const span = document.createElement('span');
+      span.textContent = slide.length > 60 ? slide.slice(0, 60) + '...' : slide;
+
+      const delBtn = document.createElement('button');
+      delBtn.textContent = 'Delete';
+      delBtn.onclick = () => {
+        if (confirm('Delete this slide?')) {
+          slides.splice(index, 1);
+          saveSlides();
+          renderSlides();
+        }
+      };
+
+      div.appendChild(img);
+      div.appendChild(span);
+      div.appendChild(delBtn);
+      slidesList.appendChild(div);
+    });
+  }
+
+  function parseYouTubeID(input) {
+    if (/^[a-zA-Z0-9_-]{11}$/.test(input)) return input;
+    try {
+      const url = new URL(input);
+      if (url.hostname.includes('youtu.be')) return url.pathname.slice(1);
+      if (url.searchParams.get('v')) return url.searchParams.get('v');
+      const parts = url.pathname.split('/');
+      return parts.pop() || parts.pop();
+    } catch {
+      const match = input.match(/[a-zA-Z0-9_-]{11}/);
+      return match ? match[0] : null;
+    }
+  }
+
+  function renderProjects() {
+    projectsList.innerHTML = '';
+    if (projects.length === 0) {
+      projectsList.textContent = 'No projects added yet.';
+      return;
+    }
+    projects.forEach((proj, index) => {
+      const div = document.createElement('div');
+      div.className = 'list-item';
+
+      let ytId = parseYouTubeID(proj);
+      if (ytId) {
+        // Create clickable link around the thumbnail image
+        const a = document.createElement('a');
+        a.href = `https://www.youtube.com/watch?v=${ytId}`;
+        a.target = '_blank';
+        a.rel = 'noopener noreferrer';
+
+        const img = document.createElement('img');
+        img.src = `https://img.youtube.com/vi/${ytId}/hqdefault.jpg`;
+        img.alt = `Project ${index + 1}`;
+        img.title = 'Click to open video';
+
+        a.appendChild(img);
+        div.appendChild(a);
+      } else {
+        const spanNoThumb = document.createElement('span');
+        spanNoThumb.textContent = 'No thumbnail available';
+        div.appendChild(spanNoThumb);
+      }
+
+      const span = document.createElement('span');
+      span.textContent = proj.length > 60 ? proj.slice(0, 60) + '...' : proj;
+
+      const delBtn = document.createElement('button');
+      delBtn.textContent = 'Delete';
+      delBtn.onclick = () => {
+        if (confirm('Delete this project?')) {
+          projects.splice(index, 1);
+          saveProjects();
+          renderProjects();
+        }
+      };
+
+      div.appendChild(span);
+      div.appendChild(delBtn);
+      projectsList.appendChild(div);
+    });
+  }
+
+  addSlideFileBtn.addEventListener('click', () => {
+    const file = slideFileInput.files[0];
+    if (!file) {
+      alert('Please select an image file first.');
+      return;
+    }
+    if (!file.type.startsWith('image/')) {
+      alert('Selected file is not an image.');
+      return;
+    }
+    if (file.size > 1024 * 1024) {
+      alert('Image too large. Max 1MB allowed.');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      slides.push(e.target.result);
+      if (saveSlides()) {
+        renderSlides();
+        slideFileInput.value = ''; // reset input
+        alert('Slide added successfully!');
+      } else {
+        slides.pop(); // rollback on fail
+      }
+    };
+    reader.readAsDataURL(file);
+  });
+
+  addSlideUrlBtn.addEventListener('click', () => {
+    const url = slideUrlInput.value.trim();
+    if (!url) {
+      alert('Please enter an image URL.');
+      return;
+    }
+    if (!/^https?:\/\/.+\.(jpg|jpeg|png|gif|webp)$/i.test(url)) {
+      if(!confirm('URL does not look like an image. Add anyway?') ) return;
+    }
+    slides.push(url);
+    if (saveSlides()) {
+      renderSlides();
+      slideUrlInput.value = '';
+      alert('Slide added successfully!');
+    } else {
+      slides.pop(); // rollback on fail
+    }
+  });
+
+  addProjectBtn.addEventListener('click', () => {
+    const input = projectUrlInput.value.trim();
+    if (!input) {
+      alert('Please enter a YouTube URL or ID.');
+      return;
+    }
+    const ytId = parseYouTubeID(input);
+    if (!ytId) {
+      alert('Could not parse YouTube ID.');
+      return;
+    }
+    projects.unshift(ytId);
+    saveProjects();
+    renderProjects();
+    projectUrlInput.value = '';
+    alert('Project added successfully!');
+  });
+
+  // Initial render
+  renderSlides();
+  renderProjects();
+</script>
+
+</body>
+</html>
+
