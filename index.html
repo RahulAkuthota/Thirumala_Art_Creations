@@ -558,46 +558,49 @@
 
     // Projects grid
     const projectsGrid = document.getElementById('projects-grid');
-
-function renderProjects() {
-  projectsGrid.innerHTML = '';
-
-  if (projects.length === 0) {
-    projectsGrid.innerHTML = '<p style="color:#66fcf1; padding:20px;">No projects available. Please add some video thumbnails from admin panel.</p>';
-    return;
+ // Helper function to extract YouTube video ID from any YouTube link
+  function getYouTubeId(url) {
+    const match = url.match(/(?:v=|\/)([a-zA-Z0-9_-]{11})/);
+    return match ? match[1] : null;
   }
 
-  projects.forEach((proj) => {
-    // proj is a string - YouTube ID or URL
-    let videoUrl = '';
-    let videoId = '';
+  // Projects grid rendering
+  function renderProjects() {
+    projectsGrid.innerHTML = '';
 
-    // Parse YouTube ID from proj (which can be URL or just ID)
-    const idMatch = proj.match(/(?:v=|\/)([a-zA-Z0-9_-]{11})$/) || proj.match(/^([a-zA-Z0-9_-]{11})$/);
-    if (idMatch) {
-      videoId = idMatch[1] || idMatch[0];
-      videoUrl = `https://www.youtube.com/watch?v=${videoId}`;
-    } else {
-      // fallback if no valid ID
-      videoUrl = proj;
+    if (projects.length === 0) {
+      projectsGrid.innerHTML = '<p style="color:#66fcf1; padding:20px;">No projects available. Please add some video thumbnails from admin panel.</p>';
+      return;
     }
 
-    const div = document.createElement('div');
-    div.classList.add('project-item');
+    projects.forEach((proj) => {
+      let videoId = getYouTubeId(proj);
+      let videoUrl = videoId 
+        ? `https://www.youtube.com/watch?v=${videoId}` 
+        : proj;
 
-    const img = document.createElement('img');
-    img.src = videoId ? `https://img.youtube.com/vi/${videoId}/hqdefault.jpg` : 'default-thumbnail.jpg';
-    img.alt = 'Project thumbnail';
+      const div = document.createElement('div');
+      div.classList.add('project-item');
 
-    div.appendChild(img);
+      const img = document.createElement('img');
+      img.src = videoId
+        ? `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`
+        : 'default-thumbnail.jpg';
+      img.alt = 'Project thumbnail';
 
-    div.addEventListener('click', () => {
-      window.open(videoUrl, '_blank');
+      div.appendChild(img);
+
+      div.addEventListener('click', () => {
+        window.open(videoUrl, '_blank');
+      });
+
+      projectsGrid.appendChild(div);
     });
+  }
 
-    projectsGrid.appendChild(div);
-  });
-}
+  // Initialize
+  renderSlides();
+  renderProjects();
 
 
 
