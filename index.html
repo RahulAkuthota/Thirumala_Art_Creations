@@ -665,6 +665,12 @@ projects.forEach(project => {
 });
 
     renderProjects();
+    // Autoplay slider every 3 seconds
+setInterval(() => {
+  currentSlide = (currentSlide + 1) % slides.length;
+  updateSlider();
+}, 3000);
+
 
     // Responsive slider update on resize
     window.addEventListener('resize', updateSlider);
